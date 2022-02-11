@@ -1,0 +1,61 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+- stage: terraform validate
+  displayName: 'Terraform validate'
+  jobs:
+  - job: validate
+    continueOnError: false
+    steps:
+    - task: TerraformInstaller@0
+      inputs:
+        terraformVersion: 'latest'
+    - task: TerraformTaskV1@0
+      displayName: 'Terraform initialize'
+      inputs:
+        provider: 'aws'
+        command: 'init'
+        backendServiceAWS: 'ravicontino'
+    - task: TerraformTaskV1@0
+      displayName: 'Terraform validate'
+      inputs:
+        provider: 'aws'
+        command: 'validate'
+- stage: deploy
+  jobs:
+  - deployment: deploy_terraform
+    continueOnError: false    
+    environment: ''
+    strategy:
+     runOnce:
+       deploy:
+        steps:
+          - checkout: self
+          - task: TerraformInstaller@0
+            displayName: 'Terraform validate'
+            inputs:
+              terraformVersion: 'latest'
+          - task: TerraformTaskV2@2
+            inputs:
+              provider: 'aws'
+              command: 'init'
+              backendServiceAWS: 'ravicontino'
+          - task: TerraformTaskV1@0
+            displayName: 'Terraform Plan'
+            inputs:
+              provider: 'aws'
+              command: 'plan'
+              backendServiceAWS: 'ravicontino'
+          # - task: TerraformTaskV1@0
+          #   displayName: 'Terraform Apply'
+          #   inputs:
+          #     provider: 'aws'
+          #     command: 'apply'
+          #     backendServiceAWS: 'ravicontino'
+
+
+        
